@@ -1,0 +1,661 @@
+---
+title: "Movie genre classification using IMDb data"
+author: "DD"
+date: "December 12, 2018"
+output: 
+  # html_document:
+  #   toc: true
+  github_document:
+    toc: true
+        #pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load_library}
+suppressPackageStartupMessages({
+  library(devtools)
+  library(knitr)
+
+  library(MASS)
+  library(dplyr)
+  library(ggplot2)
+  library(kableExtra)
+  library(tidyverse)
+  library(stringr)
+  library(data.table)
+  
+# mlr
+  library(mlbench)
+  library(mlr)
+  library(randomForestSRC)
+  library(caret)
+  
+  library(kableExtra)
+})
+
+
+RUN <- FALSE
+```
+
+
+
+# Summary of Key Findings
+
+- The most popular movie genres are drama, documentary, comedy, action and romance. The least popular movie genres are short, game show, film noir and talk show. As the least popular genres are irrelavant and caused unevenness, they are not included in this analysis.    
+
+- Two algorithms were performed (random ferns multilabel algorithm and multivariate random forest), with six differnt algorithm adaptation methods. The models was represented as multiple binary trees in order to simplify the problem. The best model were resampled, however the accuracy did not improved a lot.
+
+- The model with best presicions are using binery relvance (70%), and nested stacking (79%), and stacked generalization (77%). The model with best F1 are: classifier chains (53%), dependent binary relevance (55%), and stacked generalization (46%). Random forest performs the worst. This suggests an uneven distribution in the training data.
+
+- Below tables show the prediction accuracy and the misclassification error for each genre. The accuracy is above 90% for most genre, except for comedy, documentary, and drama (70% - 85%). One possible reason is the eneven distribution from the raw data. A stratified sampling method should be applied.
+
+- Few things needs to improve are as follows:
+
+    - Downsample the data to make sure it is even.
+    - Feature selection to drop irrelavant variables.
+    - Missing data imputation.
+
+
+# Problem Statement
+
+We’d like to build a system to classify movies by their genre. We have information like the film title, release year, cast and crew, taglines, awards, user ratings, reviews, and of course the primary genre for a total of 3,000 comedies, 1,000 dramas, 500 action adventures, and 20 thrillers. Data profile was summarized in Section \ref{Data-Profile}
+
+Multilabel classification assigns to each sample a set of target labels. This can be thought as predicting properties of a data-point that are not mutually exclusive, such as topics that are relevant for a document. A text might be about any of religion, politics, finance or education at the same time or none of these.
+
+# Data Profile
+\label{Data-Profile}
+
+The raw data files (7 tsv.gz files) were parsed and packaged into an R package called IMDB.adata. Columns with pure missing or all text were removed.
+
+The data includes information such as film release year, end year, type, run time (min), genre, rating, director demographics, writer and etc. The director best-known movie was mapped to the director best-known genres. 
+
+
+# Exploratory Data Analysis
+## Load Data
+
+```{r load_data, eval=RUN}
+# library(IMDB.adata)
+# 
+# data("title.akas")
+# data("title.basics") subset on movie only!!!!!
+# data("title.crew")
+# data("title.episode")
+# data("title.principals")
+# data("title.ratings")
+# data("name.basics")
+# 
+# glimpse(title.akas)
+# glimpse(title.basics)
+# glimpse(title.crew)
+# glimpse(title.episode)
+# glimpse(title.principals)
+# glimpse(title.ratings)
+# glimpse(name.basics)
+# 
+# n = 500
+# 
+# subset on movie only!!!!!
+
+# title.akas.sample <- sample_n(title.akas, n)  
+# title.basics.sample <- sample_n(subset(title.basics,
+#                                        titleType %in% c('movie', 'tvMovie')), n)
+# title.crew.sample <- sample_n(title.crew, n) 
+# title.episode.sample <- sample_n(title.episode, n)
+# title.principals.sample <- sample_n(title.principals, n)
+# title.ratings.sample <- sample_n(title.ratings, n)
+# name.basics.sample <- sample_n(name.basics, n)
+# 
+# save(title.akas.sample, title.basics.sample, title.crew.sample, title.episode.sample, title.principals.sample, title.ratings.sample, name.basics.sample, file = 'sample_data.RData')
+
+# save(title.akas, title.basics, title.crew, title.episode, title.principals, title.ratings, name.basics, file = 'raw_data.RData')
+
+# load('sample_data.RData')
+# load('raw_data.RData')
+# load('tidy_name_title_demographics.RData')
+
+# unique_genres <- unique(na.omit(unlist(str_split(title.basics$genres, ","))))
+
+```
+
+```{r}
+load('fullset.rda')
+load('unique_genres.rda')
+```
+
+
+## Tidy Data
+
+The movie title was replicated (ordering > 1) due to title change at different regions. The data was processed to keep individual-level data for title. In the table name.basics, the movie titles the person was most often credited were mapped to the title genre, i.e., multiple columns were generated to indicate the genre a person was most credited.
+
+```{r tidy-data, eval=RUN}
+######################################
+# name.basics.distinct: The genre of the best known titles per person 
+######################################
+
+# title-genre mapping file
+title.genre <- title.basics %>% select(tconst, genres) 
+
+# name.basics: name, demographics, known for titles
+temp <- data.frame(str_split(name.basics$knownForTitles, ",", simplify = TRUE), stringsAsFactors = F)
+temp <- temp %>% 
+  left_join(title.genre, by = c('X1' = 'tconst')) %>%
+  left_join(title.genre, by = c('X2' = 'tconst')) %>%
+  left_join(title.genre, by = c('X3' = 'tconst')) %>%
+  left_join(title.genre, by = c('X4' = 'tconst')) %>%
+  left_join(title.genre, by = c('X5' = 'tconst')) %>%
+  left_join(title.genre, by = c('X6' = 'tconst')) %>%
+  left_join(title.genre, by = c('X7' = 'tconst')) 
+
+# Best known genre with freq 
+xx <- apply(temp[8:14], 1, paste, collapse=',')
+kf.matrix <- sapply(unique_genres, function(i) str_count(xx, i))
+
+# Bind best know genre
+name.basics.distinct <- name.basics %>% 
+  select(nconst, birthYear) %>%
+  cbind(kf.matrix)
+
+rm(temp, xx, kf.matrix)
+
+######################################
+# title.akas.distinct: titleID, titleChanged (0-original title) 
+######################################
+
+# Generate dataset based on unique Title ID 
+title.akas.distinct <- title.akas %>%
+  subset(!is.na(titleId) & !is.na(isOriginalTitle)) %>%
+  group_by(titleId) %>%
+  summarise(titleChanged = max(isOriginalTitle)) 
+
+# save(name.basics.distinct, title.akas.distinct, file = 'tidy_name_title_demographics.RData')
+```
+
+```{r print-tidy-data, results='asis', eval=RUN}
+# load('tidy_name_title_demographics.RData')
+# rename
+# colnames(name.basics.distinct)[3:ncol(name.basics.distinct)] <- 
+#   paste0('kf.', colnames(name.basics.distinct)[3:ncol(name.basics.distinct)])
+
+title.akas.distinct %>% head() %>% kable()
+name.basics.distinct %>% head() %>% kable()
+```
+
+## Split Genres
+
+The genres we have are `r paste0(sort(unique_genres), ", ")`
+
+```{r split_genres, eval=RUN}
+# movie subset
+movie.sub <- title.basics %>% subset(titleType %in% c('movie', 'tvMovie'))
+
+# Create Genres (DV) matrix 
+DV.matrix <- sapply(unique_genres, function(i) grepl(i, movie.sub$genres))
+
+# Bind best know genre
+title.basics.movie <- movie.sub %>% 
+  subset(titleType %in% c('movie', 'tvMovie')) %>%
+  dplyr::select(-primaryTitle, -originalTitle) %>%
+  cbind(DV.matrix)
+
+# print
+title.basics.movie %>% data.frame() %>% head() %>% kable()
+```
+
+
+# Data Cleaning
+
+```{r join_data, eval=FALSE}
+# join data 
+combined_data <- title.basics.movie %>%
+  left_join(title.akas.distinct, by = c('tconst' = "titleId")) %>%
+  left_join(title.crew, by = "tconst") %>%   # title-director-writer mapping
+  left_join(title.episode, by = "tconst") %>% # title, parent title, season #, episode #
+  # left_join(title.principals, by = c("tconst")) %>% #title, name,
+  left_join(title.ratings, by = "tconst") %>% # title, rating score and count
+  left_join(name.basics.distinct, by = c("directors" = "nconst")) %>%   # name, demographics, known for titles
+  ungroup()
+
+# save(combined_data,movie.sub, title.basics.movie, file = 'fullset.rda')
+
+# Summarize combined dataset by each column.
+# summarizeColumns(combined_data) %>%
+  # kable(digits = 2)
+
+colSums(combined_data[,label])
+```
+
+```{r genres}
+unique_genres <- unique(na.omit(unlist(str_split(combined_data$genres, ","))))
+# format label
+names(combined_data) <- gsub('_', '.', names(combined_data))
+names(combined_data) <- gsub('-', '.', names(combined_data))
+unique_genres <- gsub('_', '.', unique_genres)
+unique_genres <- gsub('-', '.', unique_genres)
+
+unique_genres
+```
+
+The full dataset is a 440k by 68 matrix.
+
+## Missing Values
+
+Before splitting the data for training, check missingness, column type, merge small groups, and drop columns. 
+
+- Columns were removed if all are missing (movie end year, season number, episode number, parent title). The missingness for each input was listed as below.
+- Rows were removed if the genres is missing.  
+
+```{r check_missing}
+# Summary of missingness in % by each column
+sapply(combined_data, function(x) round(sum(is.na(x))/nrow(combined_data)*100, 2))
+
+# Visualization
+# missing.values <- VIM::aggr(combined_data, sortVars = T, prop = T, 
+#                             sortCombs = F, cex.lab = 1.5, cex.axis = .6, 
+#                             cex.numbers = 5, combined = F, gap = -.2)
+
+# remove empty columns
+combined_data <- combined_data %>% 
+  select_if(function(x) !(all(is.na(x)) | all(x==""))) %>%
+  subset(!is.na(genres))
+# sum(complete.cases(combined_data))
+```
+
+## Data Type 
+
+```{r data-type}
+# "region", "language", "types", "attributes", 
+combined_data <- combined_data %>%
+  mutate_at(
+    .vars = vars("titleChanged", "isAdult", "genres"),
+    .funs = funs(as.factor(.))
+  ) %>%
+  mutate_at(
+    .vars = vars(unique_genres),
+    .funs = funs(as.logical(.)) # multilable classification; 
+                                # as.factor for classification
+  ) 
+
+
+```
+
+# Data Visualization
+
+Plot the top genres by frequency
+
+```{r genres-summary}
+comb_summary <- data.table(Genres = unique_genres, 
+                           N = sapply(combined_data[,unique_genres], sum))[order(N)]
+
+# top 20 genres
+top.genres <- top_n(comb_summary, wt = N, 22)
+
+ggplot(comb_summary) + 
+  geom_bar(aes(x = reorder(Genres, -N, min), y = N), stat="identity") +
+  ggtitle("Genres frequency summary") + 
+  xlab('Movie Genres') + ylab('Movie Count') +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+```
+
+Plot the top rate moview
+
+```{r top-rating-movies}
+temp = movie.sub %>% select(-endYear, -titleType)
+  
+top_10 <- combined_data %>%
+  subset(!is.na(genres)) %>%
+  # mutate(score = numVotes * averageRating) %>%
+  arrange(desc(numVotes)) %>%
+  top_n(10, numVotes) %>%
+  select(tconst, averageRating, numVotes, birthYear) %>%
+  left_join(temp, by = 'tconst')
+
+DT::datatable(top_10, caption = 'Most popular movies (top 10 voted)')
+```
+
+Plot the release year of the movies
+
+```{r release-year}
+ggplot(combined_data, 
+       aes(x = pmin(startYear, 2018))) +
+  geom_bar() +
+  scale_x_continuous(breaks = seq(1890, 2018, by = 10)) +
+  xlab("Movie released year") + 
+  ylab('Movie Count') + 
+  ggtitle("Histogram of Movie released") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r director-birth-year, eval=FALSE, echo=FALSE}
+ggplot(combined_data, 
+       aes(x = pmin(birthYear, 2018))) +
+  geom_bar() +
+  scale_x_continuous(breaks = seq(1840, 2010, by = 10)) +
+  xlab("Director birth year") + 
+  ylab('Movie Count') + 
+  ggtitle("Histogram of director birth year") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Plot the correlation between the genres
+
+```{r correlation-heatmap1}
+data_here <- combined_data %>% mutate_at(.vars = vars(unique_genres), .funs = funs(as.numeric(.)))
+
+GGally::ggcorr(data_here[7:34], label = FALSE, 
+               label_round = 2, label_size = 4, size = 3, hjust = .85) +
+  ggtitle("Correlation Heatmap") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Plot the correlation between the input variables
+
+```{r correlation-heatmap2}
+GGally::ggcorr(combined_data[,1:40], label = TRUE, 
+               label_round = 2, label_size = 4, size = 3, hjust = .85) +
+  ggtitle("Correlation Heatmap") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+# Modeling
+## Data preparation
+
+```{r data-preparation}
+
+combined_data <- createDummyFeatures(combined_data, 
+                                 target = unique_genres, 
+                                 cols = c("titleChanged", "isAdult"))
+
+# normalize features
+combined_data <- normalizeFeatures(combined_data, target = unique_genres, method = "standardize")
+
+glimpse(combined_data)
+
+# Downsampling
+# combined_data.copy <- copy(combined_data)
+# train.index <- upSample(row.names(combined_data), dim(combined_data)[1]*0.6)
+
+# drop columns
+# drop data with genres frequency < 
+x = setdiff(unique_genres, top.genres$Genres)
+x = setdiff(colnames(combined_data), x)
+xx = lapply(x, as.symbol)  
+# i = -Short, -Game.Show, -Film.Noir, -Talk.Show, -Reality.TV, -News  
+
+combined_data <- combined_data %>%
+  dplyr::select_(.dots = xx) %>%
+  dplyr::select(-tconst, -genres, -titleType, -directors, -writers) 
+
+```
+
+## Split training and test dataset
+
+The data was split to three parts: 60% training set, 20% test set, and 20% validation set. 
+
+```{r test-train}
+
+# Split training and test data
+set.seed(123)
+train.index <- sample(row.names(combined_data), dim(combined_data)[1]*0.6)
+valid.index <- sample(setdiff(row.names(combined_data), train.index), dim(combined_data)[1]*0.2)
+test.index <- setdiff(row.names(combined_data), union(train.index, valid.index))
+
+# subtract data
+train_set  <- combined_data[train.index, ]
+test_set <- combined_data[test.index, ]
+valid_set <- combined_data[valid.index, ]
+
+
+```
+
+```{r eval=T}
+# test a small sample
+n = 2000
+train_set_sample = sample_n(train_set, n) 
+train_set = train_set_sample
+```
+
+
+## Algorithm adaptation methods
+
+In this report, I chose two commen algorithm adaptation methods to start with: multivariate random forest in the ***randomForestSRC*** package and the random ferns multilabel algorithm in the ***rFerns*** package. The resulting models was represented as multiple binary trees using the rpart package (Recursive Partitioning) in R.
+
+
+```{r make-learner}
+# create a task
+trainTask <- makeMultilabelTask(id = "multi", data = train_set, target = top.genres$Genres)
+testTask <- makeMultilabelTask(id = "multi", data = test_set, target = top.genres$Genres)
+validTask <- makeMultilabelTask(id = "multi", data = valid_set, target = top.genres$Genres)
+
+# Problem transformation method
+lrn.rfsrc = makeLearner("multilabel.randomForestSRC", predict.type = "prob")
+makeRLearnerMultilabel
+
+
+#Core learner
+lrn.core= makeLearner("classif.rpart", predict.type = "prob")
+
+#5 Wrapped learners
+lrn.binrel=makeMultilabelBinaryRelevanceWrapper(lrn.core)
+lrn.chain=makeMultilabelClassifierChainsWrapper(lrn.core)
+lrn.nest=makeMultilabelNestedStackingWrapper(lrn.core)
+lrn.dbr= makeMultilabelDBRWrapper(lrn.core)
+lrn.stack=makeMultilabelStackingWrapper(lrn.core)
+
+
+# rFerns learner
+library(rFerns)
+lrn.rFerns = makeLearner("multilabel.rFerns")
+lrn.rFerns
+
+```
+
+Below tables show the prediction accuracy and the misclassification error for each genre. The accuracy is above 90% for most genre, except for comedy, documentary, and drama.
+
+```{r train-model}
+#Training 6 models on train subset
+
+# Random forests
+mod.rf=mlr::train(lrn.rfsrc,trainTask, subset = 1:1500, weights = rep(1/1500, 1500))
+pred.rf = predict(mod.rf, task = trainTask, subset = 1:10)
+pred.rf = predict(mod.rf, newdata = train_set[1501:1600,])
+getMultilabelBinaryPerformances(pred.rf, measures = list(acc, mmce, auc))
+
+# binary relevance method
+mod.binrel=mlr::train(lrn.binrel,trainTask)
+pred.binrel = predict(mod.binrel, task = trainTask, subset = 1:10)
+pred.binrel = predict(mod.binrel, newdata = train_set[1501:1600,])
+getMultilabelBinaryPerformances(pred.binrel, measures = list(acc, mmce, auc))
+
+#classifier chains method (CC)
+mod.chain=mlr::train(lrn.chain,trainTask)
+pred.chain = predict(mod.chain, task = trainTask, subset = 1:10)
+pred.chain = predict(mod.chain, newdata = train_set[1501:1600,])
+getMultilabelBinaryPerformances(pred.chain, measures = list(acc, mmce, auc))
+
+#nested stacking method 
+mod.nest = mlr::train(lrn.nest,trainTask)
+pred.nest = predict(mod.nest, task = trainTask, subset = 1:10)
+pred.nest = predict(mod.nest, newdata = train_set[1501:1600,])
+getMultilabelBinaryPerformances(pred.nest, measures = list(acc, mmce, auc))
+
+#dependent binary relevance method
+mod.dbr=mlr::train(lrn.dbr,trainTask)
+pred.dbr = predict(mod.dbr, task = trainTask, subset = 1:10)
+pred.dbr = predict(mod.dbr, newdata = train_set[1501:1600,])
+getMultilabelBinaryPerformances(pred.dbr, measures = list(acc, mmce, auc))
+
+#stacking method (stacked generalization)
+mod.stack=mlr::train(lrn.stack,trainTask)
+pred.stack = predict(mod.stack, task = trainTask, subset = 1:10)
+pred.stack = predict(mod.stack, newdata = train_set[1501:1600,])
+getMultilabelBinaryPerformances(pred.stack, measures = list(acc, mmce, auc))
+
+# listMeasures("multilabel") #https://pat-s.github.io/mlr/articles/tutorial/devel/measures.html  
+# accuracy multilabel.acc 
+# Recall: multilabel.tpr TPR (multilabel)
+# precision: multilabel.ppv Positive predictive value (multilabel)
+# multilabel.subset01
+# F1: multilabel.f1 
+# multilabel.hamloss Hamming loss	
+# 
+# multilabel.subset01 Subset-0-1 loss
+```
+
+```{r performance-evaluation}
+# performance evaluation
+
+performance(pred.rf, measures = list(multilabel.acc, multilabel.ppv,  multilabel.tpr, multilabel.hamloss, multilabel.f1, timepredict))
+
+performance(pred.binrel, measures = list(multilabel.acc, multilabel.ppv,  multilabel.tpr, multilabel.hamloss, multilabel.f1, timepredict))
+
+performance(pred.chain, measures = list(multilabel.acc, multilabel.ppv,  multilabel.tpr, multilabel.hamloss, multilabel.f1, timepredict))
+
+performance(pred.nest, measures = list(multilabel.acc, multilabel.ppv,  multilabel.tpr, multilabel.hamloss, multilabel.f1, timepredict))
+
+performance(pred.dbr, measures = list(multilabel.acc, multilabel.ppv,  multilabel.tpr, multilabel.hamloss, multilabel.f1, timepredict))
+
+performance(pred.stack, measures = list(multilabel.acc, multilabel.ppv,  multilabel.tpr, multilabel.hamloss, multilabel.f1, timepredict))
+```
+
+The model with best presicions are using binery relvance (70%), and nested stacking (79%), and stacked generalization (77%). The model with best F1 are: classifier chains (53%), dependent binary relevance (55%), and stacked generalization (46%). Random forest performs the worst. This suggests an uneven distribution in the training data. 
+
+## Resampling method
+
+I applied resampling method to the model with best performance, which are binary relevance and nest stacking methods.
+
+```{r resampling}
+rdesc = makeResampleDesc(method = "CV", stratify = FALSE, iters = 3)
+r = resample(learner = lrn.binrel, task = trainTask, resampling = rdesc, show.info = FALSE)
+r
+
+getMultilabelBinaryPerformances(pred.binrel, measures = list(acc, mmce, auc))
+getMultilabelBinaryPerformances(r$pred, measures = list(acc, mmce))
+
+r = resample(learner = lrn.nest, task = trainTask, resampling = rdesc, show.info = FALSE)
+r
+
+getMultilabelBinaryPerformances(pred.nest, measures = list(acc, mmce, auc))
+getMultilabelBinaryPerformances(r$pred, measures = list(acc, mmce))
+```
+
+- Mean of misclassification error is > 10% for Comedy, Documentary and Drama, highly likly caused by the unven distribution of the input data. However the classification accuracy for the rest genres are all abobe 90%.
+
+- After resampling, the accuracy for predicting Documentary improved slightly, however it drops for Comedy and Drama.
+
+## Result Interpretation
+
+Take one output (Thriller) as an example. The binery relvance model was applied to Thriller model. The key features to predict it is a Thriller are:
+
+- Whether a director is know for Thriller
+- Movie run time
+- Movie popularity
+- Average rating
+- Director birth year
+- Whether it is a documentary (This is still unclear, but requires further diagostics and adjust the uneven data sampling problem)
+
+```{r Result}
+coef.Thriller <- getLearnerModel(mod.nest)$Thriller
+coef.Thriller$learner.model
+```
+
+
+# Future Work
+
+- Since the data is uneven distributed, a stratefied sampling method needs to be applied to sample a balance data.
+- Feature selection needs to be applied. (Ref: http://lpis.csd.auth.gr/publications/spolaor-bioasq.pdf)
+- Missing data imputation.
+- Optimize the script and wrapup the learning model in a pipeline. 
+- Parallel the processing.
+
+```{r eval=RUN, echo=FALSE}
+
+# train_set <- train_set %>% dplyr::select(-Short, -Film.Noir) 
+# label = setdiff(label, c('Short', 'Film.Noir'))
+
+
+# labels = colnames(train_set)[3:30]
+trainTask <- makeMultilabelTask(id = "multi", data = train_set, target = label)
+
+# normalizeFeatures(trainTask, target = label)
+# trainTask <- mergeSmallFactorLevels(trainTask, min.perc = .10)
+
+# aa <- mergeSmallFactorLevels(data.frame(train_set), cols = "region")  
+
+n = getTaskSize(trainTask)
+train.set = seq(1, n, by = 2)
+test.set = seq(2, n, by = 2)
+
+lrn.br = makeLearner("classif.rpart", predict.type = "prob")
+lrn.br = makeMultilabelBinaryRelevanceWrapper(lrn.br)
+
+
+
+mod = train(lrn.br, trainTask)
+mod = train(lrn.br, trainTask, subset = 1:1500, weights = rep(1/1500, 1500))
+
+
+pred = predict(mod, task = trainTask, subset = 1:10)
+performance(pred)
+performance(pred, measures = list(multilabel.subset01, multilabel.hamloss, multilabel.acc, multilabel.f1, timepredict))
+
+rdesc = makeResampleDesc(method = "CV", stratify = FALSE, iters = 3)
+r = resample(learner = lrn.br, task = yeast.task, resampling = rdesc, show.info = FALSE)
+r
+
+getMultilabelBinaryPerformances(pred, measures = list(acc, mmce, auc))
+
+
+lrnbr = makeMultilabelBinaryRelevanceWrapper(binary.learner)
+
+mod.br = train(lrnbr, trainTask, subset = train.set)
+pred.br = predict(mod.br, task = trainTask, subset = test.set)
+performance(pred.br)
+
+
+# xgboost
+# https://rpubs.com/mharris/multiclass_xgboost
+#https://pat-s.github.io/mlr/articles/tutorial/devel/multilabel.html
+# https://www.quora.com/What-are-the-ways-to-implement-a-multi-label-classification-in-R-apart-from-using-a-set-of-binary-classifiers
+
+set.seed(1)
+# Create an xgboost learner that is classification based and outputs
+# labels (as opposed to probabilities)
+
+xgb_learner <- makeLearner(
+  "classif.xgboost",
+  predict.type = "response",
+  par.vals = list(
+    objective = "multi:softmax", # softprob 
+    eval_metric = "merror",
+    nrounds = 20
+  )
+)
+
+
+```
+
+
+# References
+
+- An Introduction to Recursive Partitioning Using the RPART Routines. Terry M. Therneau, 2018
+- Multilabel Classification with R Package mlr. Philipp Probst, Quay Au, etl, 2017.
+- Probability Estimation for Multi-class Classification Based on Label Ranking, Weiwei Cheng and Eyke Hullermeier
+<!-- - Random k-Labelsets: An Ensemble Method for Multilabel Classification -->
+
+<!-- https://rpubs.com/mharris/multiclass_xgboost -->
+<!-- https://pat-s.github.io/mlr/articles/tutorial/devel/multilabel.html -->
+<!-- https://www.quora.com/What-are-the-ways-to-implement-a-multi-label-classification-in-R-apart-from-using-a-set-of-binary-classifiers -->
+<!-- https://scikit-learn.org/stable/modules/multiclass.html -->
+
+<!-- #pipeline -->
+<!-- https://www.kaggle.com/ravikrishnareddy/multi-label-classification/code -->
+
+
+```{r reproducibility}
+devtools::session_info() 
+```
+

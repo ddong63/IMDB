@@ -1,0 +1,58 @@
+---
+title: "adata_processing"
+author: "DD"
+date: "December 11, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# library(purrr)
+library(doParallel)  
+library(usethis)
+```
+
+
+## Data Processing Log
+
+This file contains the scrips to parse tsv.gz data and data processing. The output data (analysis data, i.e., adata) will be saved as several `.rda` files in this data package.
+
+
+```{r load_data}
+# Register multiple cores to parse the tsv file
+registerDoParallel(cores = detectCores() - 1)  
+
+# list all tsv.gz files
+PATH = "../raw-data"
+filenames = list.files(path = PATH, pattern = ".gz")
+datanames = gsub('.tsv.gz', '', filenames)
+filenames
+
+# Read all tsv files into a list
+myfiles = lapply(filenames,
+                 function(x){readr::read_tsv(file.path(PATH, x),
+                 na = c("NA", "\\N", ""))})
+
+# convert the list into different files
+lapply(seq_along(myfiles),
+       function(i,x) {assign(datanames[i],x[[i]],
+                             envir=.GlobalEnv)},
+         x=myfiles)
+```
+
+
+```{r save_rda}
+use_data(title.akas)
+use_data(title.basics)
+use_data(title.crew)
+use_data(title.episode)
+use_data(title.principals)
+use_data(title.ratings)
+use_data(name.basics)
+
+```
+
+

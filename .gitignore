@@ -1,0 +1,13 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+*.RData
+*.sas7bdat
+*.csv
+*.fcs
+*.xml
+*.RData
+*.acn
+*.ist
