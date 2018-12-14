@@ -365,13 +365,371 @@ top_10 <- combined_data %>%
   select(tconst, averageRating, numVotes, birthYear) %>%
   left_join(temp, by = 'tconst')
 
-DT::datatable(top_10, caption = 'Most popular movies (top 10 voted)')
+# DT::datatable(top_10, caption = 'Most popular movies (top 10 voted)')
+top_10 %>% kable(caption = 'Most popular movies (top 10 voted)')
 ```
 
-<!--html_preserve-->
-
-<script type="application/json" data-for="htmlwidget-8732383aa0e79c18cdcc">{"x":{"filter":"none","caption":"<caption>Most popular movies (top 10 voted)<\/caption>","data":[["1","2","3","4","5","6","7","8","9","10"],["tt0111161","tt0468569","tt1375666","tt0137523","tt0110912","tt0109830","tt0120737","tt0133093","tt0167260","tt0068646"],[9.3,9,8.8,8.8,8.9,8.8,8.8,8.7,8.9,9.2],[2024249,1991971,1771807,1619521,1580315,1543641,1457359,1452417,1440742,1387436],[1959,1970,1970,1962,1963,1951,1961,null,1961,1939],["The Shawshank Redemption","The Dark Knight","Inception","Fight Club","Pulp Fiction","Forrest Gump","The Lord of the Rings: The Fellowship of the Ring","The Matrix","The Lord of the Rings: The Return of the King","The Godfather"],["The Shawshank Redemption","The Dark Knight","Inception","Fight Club","Pulp Fiction","Forrest Gump","The Lord of the Rings: The Fellowship of the Ring","The Matrix","The Lord of the Rings: The Return of the King","The Godfather"],[0,0,0,0,0,0,0,0,0,0],[1994,2008,2010,1999,1994,1994,2001,1999,2003,1972],[142,152,148,139,154,142,178,136,201,175],["Drama","Action,Crime,Drama","Action,Adventure,Sci-Fi","Drama","Crime,Drama","Drama,Romance","Adventure,Drama,Fantasy","Action,Sci-Fi","Action,Adventure,Drama","Crime,Drama"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>tconst<\/th>\n      <th>averageRating<\/th>\n      <th>numVotes<\/th>\n      <th>birthYear<\/th>\n      <th>primaryTitle<\/th>\n      <th>originalTitle<\/th>\n      <th>isAdult<\/th>\n      <th>startYear<\/th>\n      <th>runtimeMinutes<\/th>\n      <th>genres<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[2,3,4,7,8,9]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
-<!--/html_preserve-->
+<table>
+<caption>
+Most popular movies (top 10 voted)
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+tconst
+</th>
+<th style="text-align:right;">
+averageRating
+</th>
+<th style="text-align:right;">
+numVotes
+</th>
+<th style="text-align:right;">
+birthYear
+</th>
+<th style="text-align:left;">
+primaryTitle
+</th>
+<th style="text-align:left;">
+originalTitle
+</th>
+<th style="text-align:right;">
+isAdult
+</th>
+<th style="text-align:right;">
+startYear
+</th>
+<th style="text-align:right;">
+runtimeMinutes
+</th>
+<th style="text-align:left;">
+genres
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+tt0111161
+</td>
+<td style="text-align:right;">
+9.3
+</td>
+<td style="text-align:right;">
+2024249
+</td>
+<td style="text-align:right;">
+1959
+</td>
+<td style="text-align:left;">
+The Shawshank Redemption
+</td>
+<td style="text-align:left;">
+The Shawshank Redemption
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1994
+</td>
+<td style="text-align:right;">
+142
+</td>
+<td style="text-align:left;">
+Drama
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+tt0468569
+</td>
+<td style="text-align:right;">
+9.0
+</td>
+<td style="text-align:right;">
+1991971
+</td>
+<td style="text-align:right;">
+1970
+</td>
+<td style="text-align:left;">
+The Dark Knight
+</td>
+<td style="text-align:left;">
+The Dark Knight
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+2008
+</td>
+<td style="text-align:right;">
+152
+</td>
+<td style="text-align:left;">
+Action,Crime,Drama
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+tt1375666
+</td>
+<td style="text-align:right;">
+8.8
+</td>
+<td style="text-align:right;">
+1771807
+</td>
+<td style="text-align:right;">
+1970
+</td>
+<td style="text-align:left;">
+Inception
+</td>
+<td style="text-align:left;">
+Inception
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+2010
+</td>
+<td style="text-align:right;">
+148
+</td>
+<td style="text-align:left;">
+Action,Adventure,Sci-Fi
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+tt0137523
+</td>
+<td style="text-align:right;">
+8.8
+</td>
+<td style="text-align:right;">
+1619521
+</td>
+<td style="text-align:right;">
+1962
+</td>
+<td style="text-align:left;">
+Fight Club
+</td>
+<td style="text-align:left;">
+Fight Club
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1999
+</td>
+<td style="text-align:right;">
+139
+</td>
+<td style="text-align:left;">
+Drama
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+tt0110912
+</td>
+<td style="text-align:right;">
+8.9
+</td>
+<td style="text-align:right;">
+1580315
+</td>
+<td style="text-align:right;">
+1963
+</td>
+<td style="text-align:left;">
+Pulp Fiction
+</td>
+<td style="text-align:left;">
+Pulp Fiction
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1994
+</td>
+<td style="text-align:right;">
+154
+</td>
+<td style="text-align:left;">
+Crime,Drama
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+tt0109830
+</td>
+<td style="text-align:right;">
+8.8
+</td>
+<td style="text-align:right;">
+1543641
+</td>
+<td style="text-align:right;">
+1951
+</td>
+<td style="text-align:left;">
+Forrest Gump
+</td>
+<td style="text-align:left;">
+Forrest Gump
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1994
+</td>
+<td style="text-align:right;">
+142
+</td>
+<td style="text-align:left;">
+Drama,Romance
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+tt0120737
+</td>
+<td style="text-align:right;">
+8.8
+</td>
+<td style="text-align:right;">
+1457359
+</td>
+<td style="text-align:right;">
+1961
+</td>
+<td style="text-align:left;">
+The Lord of the Rings: The Fellowship of the Ring
+</td>
+<td style="text-align:left;">
+The Lord of the Rings: The Fellowship of the Ring
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+2001
+</td>
+<td style="text-align:right;">
+178
+</td>
+<td style="text-align:left;">
+Adventure,Drama,Fantasy
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+tt0133093
+</td>
+<td style="text-align:right;">
+8.7
+</td>
+<td style="text-align:right;">
+1452417
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:left;">
+The Matrix
+</td>
+<td style="text-align:left;">
+The Matrix
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1999
+</td>
+<td style="text-align:right;">
+136
+</td>
+<td style="text-align:left;">
+Action,Sci-Fi
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+tt0167260
+</td>
+<td style="text-align:right;">
+8.9
+</td>
+<td style="text-align:right;">
+1440742
+</td>
+<td style="text-align:right;">
+1961
+</td>
+<td style="text-align:left;">
+The Lord of the Rings: The Return of the King
+</td>
+<td style="text-align:left;">
+The Lord of the Rings: The Return of the King
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+2003
+</td>
+<td style="text-align:right;">
+201
+</td>
+<td style="text-align:left;">
+Action,Adventure,Drama
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+tt0068646
+</td>
+<td style="text-align:right;">
+9.2
+</td>
+<td style="text-align:right;">
+1387436
+</td>
+<td style="text-align:right;">
+1939
+</td>
+<td style="text-align:left;">
+The Godfather
+</td>
+<td style="text-align:left;">
+The Godfather
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1972
+</td>
+<td style="text-align:right;">
+175
+</td>
+<td style="text-align:left;">
+Crime,Drama
+</td>
+</tr>
+</tbody>
+</table>
 Plot the release year of the movies
 
 ``` r
@@ -577,7 +935,7 @@ makeRLearnerMultilabel
     ##         par.set, par.vals, properties, name, short.name, note, 
     ##         callees), c(cl, "RLearnerMultilabel"))
     ## }
-    ## <bytecode: 0x00000000343fe3e0>
+    ## <bytecode: 0x000000002c39a398>
     ## <environment: namespace:mlr>
 
 ``` r
@@ -823,7 +1181,7 @@ performance(pred.rf, measures = list(multilabel.acc, multilabel.ppv,  multilabel
     ##     multilabel.acc     multilabel.ppv     multilabel.tpr 
     ##          0.2766667          0.7777778          0.2800000 
     ## multilabel.hamloss      multilabel.f1        timepredict 
-    ##          0.0550000          0.3016667          3.7100000
+    ##          0.0550000          0.3016667          4.0300000
 
 ``` r
 performance(pred.binrel, measures = list(multilabel.acc, multilabel.ppv,  multilabel.tpr, multilabel.hamloss, multilabel.f1, timepredict))
@@ -832,7 +1190,7 @@ performance(pred.binrel, measures = list(multilabel.acc, multilabel.ppv,  multil
     ##     multilabel.acc     multilabel.ppv     multilabel.tpr 
     ##         0.41000000         0.79098361         0.43666667 
     ## multilabel.hamloss      multilabel.f1        timepredict 
-    ##         0.04727273         0.44690476         0.14000000
+    ##         0.04727273         0.44690476         0.09000000
 
 ``` r
 performance(pred.chain, measures = list(multilabel.acc, multilabel.ppv,  multilabel.tpr, multilabel.hamloss, multilabel.f1, timepredict))
@@ -841,7 +1199,7 @@ performance(pred.chain, measures = list(multilabel.acc, multilabel.ppv,  multila
     ##     multilabel.acc     multilabel.ppv     multilabel.tpr 
     ##         0.51250000         0.64912281         0.53333333 
     ## multilabel.hamloss      multilabel.f1        timepredict 
-    ##         0.05045455         0.55400000         0.09000000
+    ##         0.05045455         0.55400000         0.10000000
 
 ``` r
 performance(pred.nest, measures = list(multilabel.acc, multilabel.ppv,  multilabel.tpr, multilabel.hamloss, multilabel.f1, timepredict))
@@ -850,7 +1208,7 @@ performance(pred.nest, measures = list(multilabel.acc, multilabel.ppv,  multilab
     ##     multilabel.acc     multilabel.ppv     multilabel.tpr 
     ##         0.40666667         0.79098361         0.41666667 
     ## multilabel.hamloss      multilabel.f1        timepredict 
-    ##         0.04727273         0.43857143         0.14000000
+    ##         0.04727273         0.43857143         0.07000000
 
 ``` r
 performance(pred.dbr, measures = list(multilabel.acc, multilabel.ppv,  multilabel.tpr, multilabel.hamloss, multilabel.f1, timepredict))
@@ -859,7 +1217,7 @@ performance(pred.dbr, measures = list(multilabel.acc, multilabel.ppv,  multilabe
     ##     multilabel.acc     multilabel.ppv     multilabel.tpr 
     ##         0.50666667         0.66117216         0.54833333 
     ## multilabel.hamloss      multilabel.f1        timepredict 
-    ##         0.05045455         0.55366667         0.17000000
+    ##         0.05045455         0.55366667         0.22000000
 
 ``` r
 performance(pred.stack, measures = list(multilabel.acc, multilabel.ppv,  multilabel.tpr, multilabel.hamloss, multilabel.f1, timepredict))
@@ -868,7 +1226,7 @@ performance(pred.stack, measures = list(multilabel.acc, multilabel.ppv,  multila
     ##     multilabel.acc     multilabel.ppv     multilabel.tpr 
     ##         0.40333333         0.77459016         0.42666667 
     ## multilabel.hamloss      multilabel.f1        timepredict 
-    ##         0.04772727         0.43857143         0.20000000
+    ##         0.04772727         0.43857143         0.22000000
 
 The model with best presicions are using binery relvance (70%), and nested stacking (79%), and stacked generalization (77%). The model with best F1 are: classifier chains (53%), dependent binary relevance (55%), and stacked generalization (46%). Random forest performs the worst. This suggests an uneven distribution in the training data.
 
@@ -887,7 +1245,7 @@ r
     ## Task: multi
     ## Learner: multilabel.binaryRelevance.classif.rpart
     ## Aggr perf: multilabel.hamloss.test.mean=0.0612283
-    ## Runtime: 1.38874
+    ## Runtime: 1.40386
 
 ``` r
 getMultilabelBinaryPerformances(pred.binrel, measures = list(acc, mmce, auc))
@@ -954,7 +1312,7 @@ r
     ## Task: multi
     ## Learner: multilabel.nestedStacking.classif.rpart
     ## Aggr perf: multilabel.hamloss.test.mean=0.0626363
-    ## Runtime: 4.19152
+    ## Runtime: 4.46288
 
 ``` r
 getMultilabelBinaryPerformances(pred.nest, measures = list(acc, mmce, auc))
@@ -1115,7 +1473,6 @@ devtools::session_info()
     ##  codetools         0.2-15     2016-10-05 [1] CRAN (R 3.5.1)
     ##  colorspace        1.3-2      2016-12-14 [1] CRAN (R 3.5.1)
     ##  crayon            1.3.4      2017-09-16 [1] CRAN (R 3.5.1)
-    ##  crosstalk         1.0.0      2016-12-21 [1] CRAN (R 3.5.1)
     ##  CVST              0.2-2      2018-05-26 [1] CRAN (R 3.5.1)
     ##  data.table      * 1.11.8     2018-09-30 [1] CRAN (R 3.5.1)
     ##  ddalpha           1.3.4      2018-06-23 [1] CRAN (R 3.5.1)
@@ -1126,7 +1483,6 @@ devtools::session_info()
     ##  dimRed            0.1.0      2017-05-04 [1] CRAN (R 3.5.1)
     ##  dplyr           * 0.7.7      2018-10-16 [1] CRAN (R 3.5.1)
     ##  DRR               0.0.3      2018-01-06 [1] CRAN (R 3.5.1)
-    ##  DT                0.4        2018-01-30 [1] CRAN (R 3.5.1)
     ##  evaluate          0.12       2018-10-09 [1] CRAN (R 3.5.1)
     ##  fastmatch         1.1-0      2017-01-28 [1] CRAN (R 3.5.0)
     ##  forcats         * 0.3.0      2018-02-19 [1] CRAN (R 3.5.1)
@@ -1139,10 +1495,9 @@ devtools::session_info()
     ##  gower             0.1.2      2017-02-23 [1] CRAN (R 3.5.1)
     ##  gtable            0.2.0      2016-02-26 [1] CRAN (R 3.5.1)
     ##  haven             1.1.2      2018-06-27 [1] CRAN (R 3.5.1)
+    ##  highr             0.7        2018-06-09 [1] CRAN (R 3.5.1)
     ##  hms               0.4.2      2018-03-10 [1] CRAN (R 3.5.1)
     ##  htmltools         0.3.6      2017-04-28 [1] CRAN (R 3.5.1)
-    ##  htmlwidgets       1.2        2018-04-19 [1] CRAN (R 3.5.1)
-    ##  httpuv            1.4.5      2018-07-19 [1] CRAN (R 3.5.1)
     ##  httr              1.3.1      2017-08-20 [1] CRAN (R 3.5.1)
     ##  ipred             0.9-7      2018-08-14 [1] CRAN (R 3.5.1)
     ##  iterators         1.0.10     2018-07-13 [1] CRAN (R 3.5.1)
@@ -1151,7 +1506,6 @@ devtools::session_info()
     ##  kernlab           0.9-27     2018-08-10 [1] CRAN (R 3.5.1)
     ##  knitr           * 1.20       2018-02-20 [1] CRAN (R 3.5.1)
     ##  labeling          0.3        2014-08-23 [1] CRAN (R 3.5.0)
-    ##  later             0.7.5      2018-09-18 [1] CRAN (R 3.5.1)
     ##  lattice         * 0.20-35    2017-03-25 [1] CRAN (R 3.5.1)
     ##  lava              1.6.3      2018-08-10 [1] CRAN (R 3.5.1)
     ##  lazyeval          0.2.1      2017-10-29 [1] CRAN (R 3.5.1)
@@ -1161,7 +1515,6 @@ devtools::session_info()
     ##  MASS            * 7.3-50     2018-04-30 [1] CRAN (R 3.5.1)
     ##  Matrix            1.2-14     2018-04-13 [1] CRAN (R 3.5.1)
     ##  memoise           1.1.0      2017-04-21 [1] CRAN (R 3.5.1)
-    ##  mime              0.6        2018-10-05 [1] CRAN (R 3.5.1)
     ##  mlbench         * 2.1-1      2012-07-10 [1] CRAN (R 3.5.1)
     ##  mlr             * 2.13       2018-08-28 [1] CRAN (R 3.5.1)
     ##  ModelMetrics      1.2.2      2018-11-03 [1] CRAN (R 3.5.1)
@@ -1180,7 +1533,6 @@ devtools::session_info()
     ##  prettyunits       1.0.2      2015-07-13 [1] CRAN (R 3.5.1)
     ##  processx          3.2.0      2018-08-16 [1] CRAN (R 3.5.1)
     ##  prodlim           2018.04.18 2018-04-18 [1] CRAN (R 3.5.1)
-    ##  promises          1.0.1      2018-04-13 [1] CRAN (R 3.5.1)
     ##  ps                1.1.0      2018-08-10 [1] CRAN (R 3.5.1)
     ##  purrr           * 0.2.5      2018-05-29 [1] CRAN (R 3.5.1)
     ##  R6                2.2.2      2017-06-17 [1] CRAN (R 3.5.1)
@@ -1205,7 +1557,6 @@ devtools::session_info()
     ##  scales            1.0.0      2018-08-09 [1] CRAN (R 3.5.1)
     ##  sessioninfo       1.1.0      2018-09-25 [1] CRAN (R 3.5.1)
     ##  sfsmisc           1.1-2      2018-03-05 [1] CRAN (R 3.5.1)
-    ##  shiny             1.1.0      2018-05-17 [1] CRAN (R 3.5.1)
     ##  stringi           1.2.4      2018-07-20 [1] CRAN (R 3.5.1)
     ##  stringr         * 1.3.1      2018-05-10 [1] CRAN (R 3.5.1)
     ##  survival          2.42-6     2018-07-13 [1] CRAN (R 3.5.1)
@@ -1220,7 +1571,6 @@ devtools::session_info()
     ##  withr             2.1.2      2018-03-15 [1] CRAN (R 3.5.1)
     ##  XML               3.98-1.16  2018-08-19 [1] CRAN (R 3.5.1)
     ##  xml2              1.2.0      2018-01-24 [1] CRAN (R 3.5.1)
-    ##  xtable            1.8-3      2018-08-29 [1] CRAN (R 3.5.1)
     ##  yaml              2.2.0      2018-07-25 [1] CRAN (R 3.5.1)
     ## 
     ## [1] C:/Users/ddong/Documents/R/R-3.5.1/library
